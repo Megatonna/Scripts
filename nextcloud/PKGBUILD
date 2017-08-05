@@ -16,5 +16,5 @@ sha256sums=('SKIP' 'SKIP')
 package() {
 	install -dDm 0755 ${pkgdir}/usr/lib/systemd/system
 	install -Dm 0644 nextcloud-cron.timer ${pkgdir}/usr/lib/systemd/system/nextcloud-cron.timer
-	install -Dm 0644 nextcloud-cron.timer ${pkgdir}/usr/lib/systemd/system/nextcloud-cron.service
+	install -Dm 0644 nextcloud-cron.service ${pkgdir}/usr/lib/systemd/system/nextcloud-cron.service
 }

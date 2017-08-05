@@ -3,5 +3,5 @@ Description=vdsm hourly logrotate
 BindsTo=nginx.service
 [Service]
 Type=oneshot
-ExecStart=php -f /usr/share/webapps/nextcloud/cron.php
+ExecStart=/usr/bin/php -f /usr/share/webapps/nextcloud/cron.php
 User=http
