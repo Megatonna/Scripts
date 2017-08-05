@@ -1,0 +1,9 @@
+[Unit]
+Description=Run nextclound cron.php
+
+[Timer]
+OnBootSec=20min
+OnUnitActiveSec=15min
+ 
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,20 @@
+pkgname=('nextcloud-cron')
+pkgver=0.0.1
+pkgrel=1
+pkgdesc="Nextcloud cron jobs"
+arch=('any')
+url="http://www.nextcloud.com"
+license=('MIT')
+groups=()
+depends=('systemd' 'nextcloud')
+backup=()
+#options=(!emptydirs)
+install=()
+source=('nextcloud-cron.timer' 'nextcloud-cron.service')
+sha256sums=('SKIP' 'SKIP')
+
+package() {
+	install -dDm 0755 ${pkgdir}/usr/lib/systemd/system
+	install -Dm 0644 nextcloud-cron.timer ${pkgdir}/usr/lib/systemd/system/nextcloud-cron.timer
+	install -Dm 0644 nextcloud-cron.timer ${pkgdir}/usr/lib/systemd/system/nextcloud-cron.service
+}
