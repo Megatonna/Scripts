@@ -1,0 +1,41 @@
+:local pingA;
+:local pingB;
+:local pingC;
+:local pppStatus;
+:local pppCounter 0;
+:local waitCounter 0;
+:do {
+:set pingA [/system script environment get [find name=pingA] value];
+:set pingB [/system script environment get [find name=pingB] value];
+:set pingC [/system script environment get [find name=pingC] value];
+:if (!$pingA and !$pingB and !$pingC) do={
+    :if ([/ip route get [find comment="main_gw"] distance] != 20) do={
+        /log info "Set BACKUP Gateway";
+        :set pppCounter 0;
+        :if ([/interface ppp-client get ppp-out1 disabled]) do={
+             /log info "Waiting PPP connection...";
+            /system script run ppp-connect;
+            :set waitCounter 0;
+           :do {
+           :set waitCounter ($waitCounter + 1);
+           :set pppStatus ([/interface ppp-client monitor ppp-out1 without-paging as-value]->"status");
+           :delay 1s;
+           :if ($waitCounter > 300) do={
+           /log error "Stop Failover";
+           /system script job remove [/system script job find script="Failover"];};
+            } while=( $pppStatus != "connected");};
+        /ip route set [find comment="main_gw"] distance=20;
+        :delay 2s;
+        /system script run drop_ether;
+        /log info "BACKUP Gateway already setup";
+        :delay 3s; };} else={
+    :if (!([/interface ppp-client get ppp-out1 disabled])) do={
+        :set pppCounter ($pppCounter+1);
+        :if ($pppCounter > 7200) do={ /system script run boot_up; :set pppCounter 0;};}
+    :if ([/ip route get [find comment="main_gw"] distance] != 2) do={
+        /log info "Set MAIN Gateway";
+        /ip route set [find comment="main_gw"] distance=2;
+        :delay 2s;
+        /system script run drop_ppp; };}
+:delay 1s;
+} while=(true);
