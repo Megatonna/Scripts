@@ -1,0 +1,12 @@
+:global pingA false;
+:local fPing do={
+ :local pingResult 0;
+ :do {
+ :set pingResult [/ping routing-table=main_r_gw interface=ether1-gateway count=2 interval=2s size=28 8.8.8.8]; } on-error={ :return false};
+ :if ($pingResult < 1) do={:return false};
+ return true;
+};
+:do {
+:set pingA [$fPing];
+:delay 2s;
+} while=(true);
