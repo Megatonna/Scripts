@@ -1,0 +1,79 @@
+:local fScan do={ 
+    :local arrayXpush do={
+        :local arrX value=[:toarray $1];
+        :if ([:len $arrX] = 0) do={ :set $arrX value=[:toarray ""]; };
+        :local arrXlen value=[:len $arrX];
+
+        :local valX value=[:tostr $2];
+        :if ($valX = "") do={ :return value=$arrX; };
+
+        :local posX value=([:tostr $3]);
+        :if ($posX = "") do={ :set $posX value=($arrXlen + 1); };
+        :set $posX value=([:tonum $posX] + 0);
+        :if ($posX < 0) do={ :set $posX value=0; };
+        :if ($posX > $arrXlen) do={ :set $posX value=$arrXlen; };
+
+        :if ($posX = 0) do={ :return value=($valX,$arrX); };
+
+        :if ($posX = $arrXlen) do={ :return value=($arrX,$valX); };
+
+        :return value=([:pick $arrX 0 ($posX - 1)],$valX,[:pick $arrX ($posX - 1) $arrXlen]);
+    };
+
+    :local returnArray "";
+    :local CheckSSID;
+    :local CheckFile;
+
+    :do { /interface wireless scan wlan1 background=no duration=10 save-file=scan_result;} on-error={:return ""};
+    :do { :set CheckFile [/file get scan_result contents];} on-error={:return ""};
+    :foreach ENTRY in=[/interface wireless connect-list find ssid!="" and connect!=no] do={
+        :do {:set CheckSSID [/interface wireless connect-list get value-name=ssid number=$ENTRY]; } on-error={:return ""};
+        :if ( [:find $CheckFile $CheckSSID -1] > 0) do={ :set returnArray [$arrayXpush $returnArray $CheckSSID];};
+     }; 
+    :return ($returnArray);
+};
+
+:local fConnect do={ :do {
+   /interface wireless set [/int wi find name=wlan1] ssid=$1;
+   } on-error={:return false};
+   :do { /ip dhcp-client release [/ip dhcp-client find interface=wlan1]; } on-error={:return false};
+   :return true;
+};
+
+:local fCheckWlan do={
+    :local wlanGateway;
+    :local wlanPingResult;
+    :local wlanIndex;
+    :local wlanStatus;
+    :do { :set wlanStatus ([/interface wireless monitor wlan1 as-value]->"status"); } on-error={ :return "error"};
+#    :put $wlanStatus;
+    :if ($wlanStatus!="connected-to-ess") do={ :return "bad"};
+    :do { :set wlanGateway [/ip dhcp-client get [find interface=wlan1] value-name=gateway]; } on-error={ :return "error"};
+#    :put $wlanGateway;
+    :if ([:tostr $wlanGateway ]="") do={ :return "bad"};
+    :do { :set wlanPingResult [/ping $wlanGateway count=1 interface=wlan1]; :set wlanIndex ($wlanIndex +1); } while=(($wlanPingResult=0) and ($wlanIndex<5));
+   :if ($wlanPingResult < 1) do={ :return "bad"};
+    return "good";
+};
+
+:if (([/interface wireless monitor wlan1 as-value]->"status")!="disabled") do={
+:if ([$fCheckWlan ]="bad") do={
+    :local listAP [$fScan];
+    :local finish false;
+    if ($listAP != "") do={
+        :foreach AP in=$listAP do={
+            :if ($finish=false) do={
+                :log  info message=("Trying ".$AP);
+                :local index 0;
+                :local connect;
+                :set connect "bad";
+                :if ([$fConnect $AP]=true) do={
+                    :do { :set connect [$fCheckWlan]; :set index ($index +1); :put $index; :delay 2s; } while=(($connect="bad") and ($index<10));
+                    :if (($index<10) and ($connect="good")) do={ :put $AP; :set finish true;}
+                };
+            };
+        };
+    };
+:if ($finish=true) do={:log info message="Successful"};
+};
+};
